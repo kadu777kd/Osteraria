@@ -1,0 +1,161 @@
+{
+  "entities": {
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Publicly readable published settings and admin-only draft configuration for Osteria del Nonno.",
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["published", "draft"] },
+        "restaurantName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "slogan": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "heroHighlight": { "type": "string", "maxLength": 240 },
+        "heroCtaMenu": { "type": "string", "maxLength": 60 },
+        "heroCtaWhatsapp": { "type": "string", "maxLength": 60 },
+        "heroImageUrl": { "type": "string", "maxLength": 1500 },
+        "logoUrl": { "type": "string", "maxLength": 1500 },
+        "aboutTitle": { "type": "string", "maxLength": 120 },
+        "aboutText": { "type": "string", "maxLength": 2000 },
+        "aboutImageUrl": { "type": "string", "maxLength": 1500 },
+        "address": { "type": "string", "maxLength": 240 },
+        "mapsUrl": { "type": "string", "maxLength": 500 },
+        "hoursWeekdays": { "type": "string", "maxLength": 120 },
+        "hoursSunday": { "type": "string", "maxLength": 120 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "whatsappDisplay": { "type": "string", "maxLength": 40 },
+        "whatsappGreeting": { "type": "string", "maxLength": 500 },
+        "instagramHandle": { "type": "string", "maxLength": 60 },
+        "instagramUrl": { "type": "string", "maxLength": 300 },
+        "footerText": { "type": "string", "maxLength": 300 },
+        "colors": { "type": "object" },
+        "fonts": { "type": "object" },
+        "sectionOrder": { "type": "array" },
+        "hiddenSections": { "type": "array" },
+        "version": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["mode", "restaurantName", "slogan", "whatsappNumber", "address", "updatedAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Menu categories for Osteria del Nonno.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[a-z0-9\\-]+$" },
+        "description": { "type": "string", "maxLength": 400 },
+        "imageUrl": { "type": "string", "maxLength": 1500 },
+        "order": { "type": "number" },
+        "active": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "slug", "order", "active", "updatedAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Menu item with name, optional description, optional price in BRL, category, photo, and highlight status.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "description": { "type": "string", "maxLength": 600 },
+        "price": { "type": "number" },
+        "categoryId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "imageUrl": { "type": "string", "maxLength": 1500 },
+        "mediaId": { "type": "string", "maxLength": 128 },
+        "featured": { "type": "boolean" },
+        "featuredOrder": { "type": "number" },
+        "order": { "type": "number" },
+        "active": { "type": "boolean" },
+        "available": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "categoryId", "featured", "featuredOrder", "order", "active", "available", "updatedAt"]
+    },
+    "GalleryItem": {
+      "title": "GalleryItem",
+      "description": "Gallery photograph displayed on the public restaurant site.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "caption": { "type": "string", "maxLength": 400 },
+        "imageUrl": { "type": "string", "minLength": 1, "maxLength": 1500 },
+        "mediaId": { "type": "string", "maxLength": 128 },
+        "productId": { "type": "string", "maxLength": 128 },
+        "order": { "type": "number" },
+        "active": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "imageUrl", "order", "active", "updatedAt"]
+    },
+    "MediaAsset": {
+      "title": "MediaAsset",
+      "description": "Permanent uploaded image asset stored in Firestore for gallery, products, and banners.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "dataUrl": { "type": "string", "minLength": 1, "maxLength": 750000 },
+        "mimeType": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "sizeBytes": { "type": "number" },
+        "uploadedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "dataUrl", "mimeType", "sizeBytes", "uploadedBy", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order summary sent via WhatsApp and logged for restaurant administration.",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "notes": { "type": "string", "maxLength": 600 },
+        "items": { "type": "array" },
+        "total": { "type": "number" },
+        "hasUnpricedItems": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["whatsapp_sent", "confirmed", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "items", "total", "hasUnpricedItems", "status", "createdAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized restaurant administrator record.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "minLength": 3, "maxLength": 160 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "addedBy": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "addedBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/site_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Published (public) and draft (admin-only) restaurant configuration."
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Menu categories ordered for display."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Menu items, prices, descriptions, photos, and featured flags."
+    },
+    "/gallery/{galleryId}": {
+      "schema": { "$ref": "#/entities/GalleryItem" },
+      "description": "Curated gallery photos with captions and ordering."
+    },
+    "/media/{mediaId}": {
+      "schema": { "$ref": "#/entities/MediaAsset" },
+      "description": "Uploaded image library persisted in database."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "WhatsApp orders placed by visitors; private to admins for reading and status management."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Whitelist of verified admin emails."
+    }
+  }
+}

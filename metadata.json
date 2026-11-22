@@ -1,0 +1,8 @@
+{
+  "name": "Osteria del Nonno",
+  "description": "Gastronomia italiana artesanal em Manaus. Massas frescas, pizzas napolitanas, sobremesas, cardápio digital e pedidos pelo WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

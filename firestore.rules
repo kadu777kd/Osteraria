@@ -1,0 +1,234 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmailId(id) {
+      return id is string && id.size() >= 3 && id.size() <= 160 && !id.matches('.*[/\\s].*');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email is string;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'kadulopes624@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
+      );
+    }
+
+    // --- Validation Blueprints ---
+    function isValidSiteSettings(data, settingId) {
+      return data.keys().hasAll(['mode', 'restaurantName', 'slogan', 'whatsappNumber', 'address', 'updatedAt'])
+        && data.keys().hasOnly([
+          'mode', 'restaurantName', 'slogan', 'heroHighlight', 'heroCtaMenu', 'heroCtaWhatsapp',
+          'heroImageUrl', 'logoUrl', 'aboutTitle', 'aboutText', 'aboutImageUrl',
+          'address', 'mapsUrl', 'hoursWeekdays', 'hoursSunday',
+          'whatsappNumber', 'whatsappDisplay', 'whatsappGreeting',
+          'instagramHandle', 'instagramUrl', 'footerText',
+          'colors', 'fonts', 'sectionOrder', 'hiddenSections', 'version', 'updatedAt'
+        ])
+        && data.mode is string && data.mode == settingId && (data.mode == 'published' || data.mode == 'draft')
+        && data.restaurantName is string && data.restaurantName.size() >= 1 && data.restaurantName.size() <= 120
+        && data.slogan is string && data.slogan.size() >= 1 && data.slogan.size() <= 300
+        && data.whatsappNumber is string && data.whatsappNumber.size() >= 8 && data.whatsappNumber.size() <= 30
+        && data.address is string && data.address.size() >= 1 && data.address.size() <= 240
+        && data.updatedAt == request.time
+        && (!('heroHighlight' in data) || (data.heroHighlight is string && data.heroHighlight.size() <= 240))
+        && (!('heroCtaMenu' in data) || (data.heroCtaMenu is string && data.heroCtaMenu.size() <= 60))
+        && (!('heroCtaWhatsapp' in data) || (data.heroCtaWhatsapp is string && data.heroCtaWhatsapp.size() <= 60))
+        && (!('heroImageUrl' in data) || (data.heroImageUrl is string && data.heroImageUrl.size() <= 1500))
+        && (!('logoUrl' in data) || (data.logoUrl is string && data.logoUrl.size() <= 1500))
+        && (!('aboutTitle' in data) || (data.aboutTitle is string && data.aboutTitle.size() <= 120))
+        && (!('aboutText' in data) || (data.aboutText is string && data.aboutText.size() <= 2000))
+        && (!('aboutImageUrl' in data) || (data.aboutImageUrl is string && data.aboutImageUrl.size() <= 1500))
+        && (!('mapsUrl' in data) || (data.mapsUrl is string && data.mapsUrl.size() <= 500))
+        && (!('hoursWeekdays' in data) || (data.hoursWeekdays is string && data.hoursWeekdays.size() <= 120))
+        && (!('hoursSunday' in data) || (data.hoursSunday is string && data.hoursSunday.size() <= 120))
+        && (!('whatsappDisplay' in data) || (data.whatsappDisplay is string && data.whatsappDisplay.size() <= 40))
+        && (!('whatsappGreeting' in data) || (data.whatsappGreeting is string && data.whatsappGreeting.size() <= 500))
+        && (!('instagramHandle' in data) || (data.instagramHandle is string && data.instagramHandle.size() <= 60))
+        && (!('instagramUrl' in data) || (data.instagramUrl is string && data.instagramUrl.size() <= 300))
+        && (!('footerText' in data) || (data.footerText is string && data.footerText.size() <= 300))
+        && (!('colors' in data) || (data.colors is map && data.colors.keys().size() <= 10))
+        && (!('fonts' in data) || (data.fonts is map && data.fonts.keys().size() <= 5))
+        && (!('sectionOrder' in data) || (data.sectionOrder is list && data.sectionOrder.size() <= 12 && (data.sectionOrder.size() == 0 || data.sectionOrder[0] is string)))
+        && (!('hiddenSections' in data) || (data.hiddenSections is list && data.hiddenSections.size() <= 12 && (data.hiddenSections.size() == 0 || data.hiddenSections[0] is string)))
+        && (!('version' in data) || (data.version is number && data.version >= 1));
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'slug', 'order', 'active', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'slug', 'description', 'imageUrl', 'order', 'active', 'updatedAt'])
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 80 && data.slug.matches('^[a-z0-9\\-]+$')
+        && data.order is number && data.order >= 0 && data.order <= 10000
+        && data.active is bool
+        && data.updatedAt == request.time
+        && (!('description' in data) || (data.description is string && data.description.size() <= 400))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1500));
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'categoryId', 'featured', 'featuredOrder', 'order', 'active', 'available', 'updatedAt'])
+        && data.keys().hasOnly([
+          'name', 'description', 'price', 'categoryId', 'imageUrl', 'mediaId',
+          'featured', 'featuredOrder', 'order', 'active', 'available', 'updatedAt'
+        ])
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && isValidId(data.categoryId)
+        && data.featured is bool
+        && data.featuredOrder is number && data.featuredOrder >= 0 && data.featuredOrder <= 10000
+        && data.order is number && data.order >= 0 && data.order <= 10000
+        && data.active is bool
+        && data.available is bool
+        && data.updatedAt == request.time
+        && (!('description' in data) || (data.description is string && data.description.size() <= 600))
+        && (!('price' in data) || data.price == null || (data.price is number && data.price >= 0 && data.price <= 100000))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 1500))
+        && (!('mediaId' in data) || data.mediaId == null || (data.mediaId is string && data.mediaId.size() <= 128));
+    }
+
+    function isValidGalleryItem(data) {
+      return data.keys().hasAll(['title', 'imageUrl', 'order', 'active', 'updatedAt'])
+        && data.keys().hasOnly(['title', 'caption', 'imageUrl', 'mediaId', 'productId', 'order', 'active', 'updatedAt'])
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 1500
+        && data.order is number && data.order >= 0 && data.order <= 10000
+        && data.active is bool
+        && data.updatedAt == request.time
+        && (!('caption' in data) || (data.caption is string && data.caption.size() <= 400))
+        && (!('mediaId' in data) || data.mediaId == null || (data.mediaId is string && data.mediaId.size() <= 128))
+        && (!('productId' in data) || data.productId == null || (data.productId is string && data.productId.size() <= 128));
+    }
+
+    function isValidMediaAsset(data) {
+      return data.keys().hasAll(['name', 'dataUrl', 'mimeType', 'sizeBytes', 'uploadedBy', 'createdAt'])
+        && data.keys().hasOnly(['name', 'dataUrl', 'mimeType', 'sizeBytes', 'uploadedBy', 'createdAt'])
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
+        && data.dataUrl is string && data.dataUrl.size() >= 1 && data.dataUrl.size() <= 750000
+        && data.mimeType is string && data.mimeType.size() >= 1 && data.mimeType.size() <= 64
+        && data.sizeBytes is number && data.sizeBytes >= 0 && data.sizeBytes <= 750000
+        && data.uploadedBy is string && data.uploadedBy == request.auth.uid
+        && data.createdAt == request.time;
+    }
+
+    function isValidOrderCreate(data) {
+      return data.keys().hasAll(['customerName', 'items', 'total', 'hasUnpricedItems', 'status', 'createdAt'])
+        && data.keys().hasOnly(['customerName', 'notes', 'items', 'total', 'hasUnpricedItems', 'status', 'createdAt'])
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 600))
+        && data.items is list && data.items.size() >= 1 && data.items.size() <= 50 && data.items[0] is map
+        && data.total is number && data.total >= 0 && data.total <= 1000000
+        && data.hasUnpricedItems is bool
+        && data.status == 'whatsapp_sent'
+        && data.createdAt == request.time;
+    }
+
+    function isValidOrderUpdate(data) {
+      return data.keys().hasAll(['customerName', 'items', 'total', 'hasUnpricedItems', 'status', 'createdAt'])
+        && data.keys().hasOnly(['customerName', 'notes', 'items', 'total', 'hasUnpricedItems', 'status', 'createdAt', 'updatedAt'])
+        && data.customerName == existing().customerName
+        && data.items == existing().items
+        && data.total == existing().total
+        && data.hasUnpricedItems == existing().hasUnpricedItems
+        && data.createdAt == existing().createdAt
+        && data.status is string && (data.status == 'whatsapp_sent' || data.status == 'confirmed' || data.status == 'completed' || data.status == 'cancelled')
+        && (!('updatedAt' in data) || data.updatedAt == request.time);
+    }
+
+    function isValidAdminUser(data, adminId) {
+      return data.keys().hasAll(['email', 'role', 'addedBy', 'createdAt'])
+        && data.keys().hasOnly(['email', 'role', 'addedBy', 'createdAt'])
+        && data.email is string && data.email == adminId && data.email.size() >= 3 && data.email.size() <= 160
+        && data.role == 'admin'
+        && data.addedBy is string && data.addedBy.size() >= 1 && data.addedBy.size() <= 160
+        && data.createdAt == request.time;
+    }
+
+    // --- Collection Rules ---
+    match /test/connection {
+      allow get: if true;
+    }
+
+    match /site_settings/{settingId} {
+      allow get: if isValidId(settingId) && (settingId == 'published' || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(settingId) && isValidSiteSettings(incoming(), settingId);
+      allow update: if isAdmin() && isValidId(settingId) && isValidSiteSettings(incoming(), settingId);
+      allow delete: if false;
+    }
+
+    match /categories/{categoryId} {
+      allow get: if isValidId(categoryId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isAdmin();
+      allow create: if isAdmin() && isValidId(categoryId) && isValidCategory(incoming());
+      allow update: if isAdmin() && isValidId(categoryId) && isValidCategory(incoming());
+      allow delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    match /products/{productId} {
+      allow get: if isValidId(productId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isAdmin();
+      allow create: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidId(productId) && isValidProduct(incoming());
+      allow delete: if isAdmin() && isValidId(productId);
+    }
+
+    match /gallery/{galleryId} {
+      allow get: if isValidId(galleryId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isAdmin();
+      allow create: if isAdmin() && isValidId(galleryId) && isValidGalleryItem(incoming());
+      allow update: if isAdmin() && isValidId(galleryId) && isValidGalleryItem(incoming());
+      allow delete: if isAdmin() && isValidId(galleryId);
+    }
+
+    match /media/{mediaId} {
+      allow get: if isValidId(mediaId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(mediaId) && isValidMediaAsset(incoming());
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(mediaId);
+    }
+
+    match /orders/{orderId} {
+      allow get: if isAdmin() && isValidId(orderId);
+      allow list: if isAdmin();
+      allow create: if isValidId(orderId) && isValidOrderCreate(incoming());
+      allow update: if isAdmin() && isValidId(orderId) && isValidOrderUpdate(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+
+    match /admins/{adminId} {
+      allow get: if isValidEmailId(adminId) && (isAdmin() || (isVerifiedUser() && adminId == request.auth.token.email));
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidEmailId(adminId) && isValidAdminUser(incoming(), adminId);
+      allow update: if false;
+      allow delete: if isAdmin() && isValidEmailId(adminId) && adminId != 'kadulopes624@gmail.com';
+    }
+  }
+}

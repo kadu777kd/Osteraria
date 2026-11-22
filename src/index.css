@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --osteria-bg: #FAF6F0;
+  --osteria-surface: #F3ECE2;
+  --osteria-card: #FFFFFF;
+  --osteria-ink: #2A1E17;
+  --osteria-muted: #6C5B4F;
+  --osteria-accent: #A64B2A;
+  --osteria-gold: #B88B4A;
+  --osteria-border: rgba(42, 30, 23, 0.1);
+  --osteria-font-display: 'Cormorant Garamond', Georgia, serif;
+  --osteria-font-body: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--osteria-bg);
+  color: var(--osteria-ink);
+  font-family: var(--osteria-font-body);
+}
+
+body {
+  margin: 0;
+  background-color: var(--osteria-bg);
+  color: var(--osteria-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+  font-family: var(--osteria-font-display);
+}
+
+.font-body {
+  font-family: var(--osteria-font-body);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
